@@ -1,4 +1,4 @@
-module hello
+module tsumitan
 
 go 1.24.2
 
