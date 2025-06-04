@@ -5,8 +5,8 @@ import (
 )
 
 type Word struct {
-	UserID       string    `gorm:"primaryKey"`
-	Word         string    `gorm:"primaryKey"`
+	UserID       string `gorm:"primaryKey"`
+	Word         string `gorm:"primaryKey"`
 	SearchCount  int
 	ReviewCount  int
 	LastReviewed time.Time

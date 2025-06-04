@@ -2,25 +2,24 @@ package database
 
 import (
 	"context"
-	// "database/sql" // Removed
 	"fmt"
 	"log"
 	"os"
 	"strconv"
 	"time"
 
-	// _ "github.com/jackc/pgx/v5/stdlib" // Removed
+	"tsumitan/internal/models"
+
 	_ "github.com/joho/godotenv/autoload"
-	"gorm.io/driver/postgres" // Added
-	"gorm.io/gorm"            // Added
-	"tsumitan/internal/models" // Added
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 // Service represents a service that interacts with a database.
 type Service interface {
 	Health() map[string]string
 	Close() error
-	Migrate() error // Added
+	Migrate() error
 }
 
 type service struct {
@@ -105,7 +104,6 @@ func (s *service) Health() map[string]string {
 	if dbStats.MaxLifetimeClosed > int64(dbStats.OpenConnections)/2 {
 		stats["message"] = "Many connections are being closed due to max lifetime, consider increasing max lifetime or revising the connection usage pattern."
 	}
-
 
 	return stats
 }
