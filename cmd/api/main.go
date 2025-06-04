@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"tsumitan/internal/database"
 	"tsumitan/internal/server"
 )
 
@@ -37,8 +38,16 @@ func gracefulShutdown(apiServer *http.Server, done chan bool) {
 }
 
 func main() {
+	// Initialize database service and run migrations
+	// Note: database.New() is designed as a singleton, so this will get the
+	// same instance that will be used by the server.
+	dbService := database.New()
+	if err := dbService.Migrate(); err != nil {
+		log.Fatalf("Failed to migrate database: %v", err)
+	}
+	log.Println("Database migration successful.")
 
-	server := server.NewServer()
+	server := server.NewServer() // Server will use the already initialized and migrated dbService
 
 	// Create a done channel to signal when the shutdown is complete
 	done := make(chan bool, 1)
