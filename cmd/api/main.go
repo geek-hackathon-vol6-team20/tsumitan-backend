@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	"tsumitan/internal/database" // Added
+	"tsumitan/internal/database"
 	"tsumitan/internal/server"
 )
 

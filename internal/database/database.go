@@ -23,7 +23,7 @@ type Service interface {
 }
 
 type service struct {
-	db *gorm.DB // Changed from *sql.DB
+	db *gorm.DB
 }
 
 var (
@@ -32,7 +32,7 @@ var (
 	username   = os.Getenv("BLUEPRINT_DB_USERNAME")
 	port       = os.Getenv("BLUEPRINT_DB_PORT")
 	host       = os.Getenv("BLUEPRINT_DB_HOST")
-	schema     = os.Getenv("BLUEPRINT_DB_SCHEMA") // GORM uses search_path in DSN
+	schema     = os.Getenv("BLUEPRINT_DB_SCHEMA")
 	dbInstance *service
 )
 
@@ -41,13 +41,12 @@ func New() Service {
 		return dbInstance
 	}
 
-	// Updated DSN for GORM
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable search_path=%s TimeZone=UTC",
 		host, username, password, database, port, schema)
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		log.Fatalf("failed to connect database: %v", err) // Updated error message
+		log.Fatalf("failed to connect database: %v", err)
 	}
 
 	dbInstance = &service{
@@ -67,7 +66,7 @@ func (s *service) Health() map[string]string {
 	if err != nil {
 		stats["status"] = "down"
 		stats["error"] = fmt.Sprintf("failed to get underlying DB: %v", err)
-		log.Printf("failed to get underlying DB: %v", err) // Log instead of Fatalf
+		log.Printf("failed to get underlying DB: %v", err)
 		return stats
 	}
 
@@ -75,7 +74,7 @@ func (s *service) Health() map[string]string {
 	if err != nil {
 		stats["status"] = "down"
 		stats["error"] = fmt.Sprintf("db down: %v", err)
-		log.Printf("db down: %v", err) // Log instead of Fatalf
+		log.Printf("db down: %v", err)
 		return stats
 	}
 
