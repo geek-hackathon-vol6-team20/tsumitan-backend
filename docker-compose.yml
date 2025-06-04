@@ -21,5 +21,15 @@ services:
     volumes:
       - ./openapi.yml:/app/openapi.yml:ro
 
+  pgweb:
+    image: sosedoff/pgweb
+    restart: unless-stopped
+    ports:
+      - "8082:8081"
+    environment:
+      PGWEB_DATABASE_URL: "postgres://${BLUEPRINT_DB_USERNAME}:${BLUEPRINT_DB_PASSWORD}@psql_bp:5432/${BLUEPRINT_DB_DATABASE}?sslmode=disable"
+    depends_on:
+      - psql_bp
+
 volumes:
   psql_volume_bp:
