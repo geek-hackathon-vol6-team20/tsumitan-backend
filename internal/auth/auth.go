@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rsa"
 	"crypto/x509"
+
 	// "encoding/base64" // Not directly used if jwt library handles header decoding
 	"encoding/json"
 	"encoding/pem"
@@ -85,12 +86,11 @@ func getGooglePublicKey(kid string) (*rsa.PublicKey, error) {
 			parsedKeys[keyID] = rsaPubKey
 		}
 		if len(parsedKeys) == 0 && len(rawKeys) > 0 {
-		    return nil, errors.New("no valid RSA public keys found after parsing all fetched keys")
+			return nil, errors.New("no valid RSA public keys found after parsing all fetched keys")
 		}
-        if len(parsedKeys) == 0 {
-             return nil, errors.New("no public keys were successfully parsed")
-        }
-
+		if len(parsedKeys) == 0 {
+			return nil, errors.New("no public keys were successfully parsed")
+		}
 
 		googlePublicKeys = parsedKeys
 		lastKeyFetchTime = time.Now()
