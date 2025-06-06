@@ -75,11 +75,12 @@ make watch
 プロジェクト特有のMakefileコマンド：
 
 ```bash
-make docker-run    # PostgreSQL + Swagger UI + pgweb を起動
-make docker-down   # Dockerコンテナを停止・削除
+make build        # アプリケーションをビルド
 make run          # アプリケーション起動
+make docker-run   # PostgreSQL + Swagger UI + pgweb を起動
+make docker-down  # Dockerコンテナを停止・削除
+make clean        # ビルド成果物を削除
 make watch        # Air使用でホットリロード起動
-make test         # テスト実行
-make fmt          # gofmtでコード整形
-make lint         # golangci-lintでコード検証
+make lint         # コードリンティング
+make format       # コードフォーマット
 ```
