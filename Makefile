@@ -52,4 +52,23 @@ watch:
             fi; \
         fi
 
-.PHONY: all build run clean watch docker-run docker-down
+lint: 
+	@echo "Running linter..."
+	@if command -v golangci-lint > /dev/null; then \
+		golangci-lint run && echo "Linting completed successfully!"; \
+	else \
+		read -p "GolangCI-Lint is not installed. Do you want to install it? [Y/n] " choice; \
+		if [ "$$choice" != "n" ] && [ "$$choice" != "N" ]; then \
+			go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest; \
+			golangci-lint run && echo "Linting completed successfully!"; \
+		else \
+			echo "You chose not to install GolangCI-Lint. Exiting..."; \
+			exit 1; \
+		fi; \
+	fi
+
+format:
+	@echo "Running formatter..."
+	@gofmt -w .
+
+.PHONY: all build run clean watch docker-run docker-down lint format
