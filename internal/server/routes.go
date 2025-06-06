@@ -3,6 +3,8 @@ package server
 import (
 	"net/http"
 
+	"tsumitan/internal/auth"
+
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
@@ -19,6 +21,10 @@ func (s *Server) RegisterRoutes() http.Handler {
 		AllowCredentials: true,
 		MaxAge:           300,
 	}))
+
+	// Register the AuthMiddleware
+	// This will apply to all routes defined after this line.
+	e.Use(auth.AuthMiddleware)
 
 	e.GET("/", s.HelloWorldHandler)
 

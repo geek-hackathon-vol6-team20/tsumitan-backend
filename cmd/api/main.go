@@ -9,6 +9,8 @@ import (
 	"syscall"
 	"time"
 
+	_ "github.com/joho/godotenv/autoload"
+
 	"tsumitan/internal/database"
 	"tsumitan/internal/server"
 )
