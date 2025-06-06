@@ -10,7 +10,6 @@
 
 ### JWT検証フロー
 
-TODO: これを画像に差し替え
 ```mermaid
 sequenceDiagram
     participant Client as クライアント
