@@ -7,8 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	_ "github.com/joho/godotenv/autoload"
-
 	"tsumitan/internal/database"
 )
 

@@ -1,0 +1,306 @@
+openapi: 3.0.0
+info:
+  title: 英単語学習アプリ API
+  version: 1.0.0
+  description: |
+    英単語の検索履歴・復習セッション・単語のメタ情報を管理するAPI仕様です。
+    Bearerトークンを `Authorization` ヘッダーで受け取り、ユーザーを識別します。
+    各ユーザーと単語の組み合わせで一意な記録が作成され、検索回数・復習回数が追跡されます。
+
+servers:
+  - url: https://api.example.com
+    description: 本番サーバー
+  - url: http://localhost:8080
+    description: 開発サーバー
+
+paths:
+  /api/search:
+    post:
+      summary: 単語の検索を記録する（新規または更新）
+      description: |
+        Bearerトークンから `user_id` を取得し、ユーザーを識別します。
+        単語を検索したときに呼び出されます。同じ`user_id`と`word`の組み合わせが
+        既に存在する場合、`search_count`をインクリメントし、
+        存在しない場合は新規作成され、`search_count = 1`、`review_count = 0`になります。
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchRequest'
+      responses:
+        '200':
+          description: 検索の記録に成功
+          content: {}
+        '400':
+          description: リクエスト不備
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 認証エラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: サーバーエラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/review/pending:
+    get:
+      summary: 未復習（review_count = 0）の単語一覧を取得
+      description: |
+        Bearerトークンから `user_id` を取得し、復習がまだ行われていない
+        単語（`review_count = 0`）の一覧を返します。
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 未復習単語の一覧
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PendingResponse'
+        '400':
+          description: リクエスト不備
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 認証エラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: サーバーエラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/review:
+    patch:
+      summary: 単語の復習を記録する
+      description: |
+        Bearerトークンから `user_id` を取得し、単語の復習を行った際に呼び出します。
+        `review_count`をインクリメントします。
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewRequest'
+      responses:
+        '200':
+          description: 復習の記録に成功
+          content: {}
+        '400':
+          description: リクエスト不備
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 認証エラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 対象の記録が見つからない
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: サーバーエラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/review/history:
+    get:
+      summary: 復習済み単語の履歴を取得
+      description: |
+        Bearerトークンから `user_id` を取得し、`review_count > 0`の
+        単語一覧を返します。
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 復習済み単語の一覧
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewHistoryResponse'
+        '400':
+          description: リクエスト不備
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 認証エラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: サーバーエラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/word/{word}:
+    get:
+      summary: 特定単語のメタ情報を取得
+      description: |
+        FirebaseのBearerトークンから `user_id` を取得し、指定した単語に関する
+        メタ情報（`search_count`、`review_count`、`last_reviewed_at`など）を返します。
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: word
+          in: path
+          required: true
+          description: 調べたい英単語
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 単語情報の取得に成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WordDetailResponse'
+        '400':
+          description: パラメータ不備
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 認証エラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 単語記録が存在しない
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Firebaseから発行されたIDトークン（Bearerトークン）を使用します。  
+        例: `Authorization: Bearer <Firebase_ID_Token>`
+
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "必須フィールドが不足しています"
+
+    SearchRequest:
+      type: object
+      required: [word]
+      properties:
+        word:
+          type: string
+          description: 検索する英単語
+          example: "example"
+
+    WordStats:
+      type: object
+      description: 単語の統計情報
+      properties:
+        search_count:
+          type: integer
+          description: 検索回数
+          example: 3
+        review_count:
+          type: integer
+          description: 復習回数
+          example: 1
+        last_reviewed_at:
+          type: string
+          format: date-time
+          description: 最後に復習した日時
+          example: "2025-06-01T16:00:00Z"
+          nullable: true
+
+    PendingWord:
+      allOf:
+        - type: object
+          properties:
+            word:
+              type: string
+              example: "example"
+        - type: object
+          properties:
+            search_count:
+              type: integer
+              example: 3
+
+    PendingResponse:
+      type: array
+      description: 未復習（review_count = 0）の単語配列
+      items:
+        $ref: '#/components/schemas/PendingWord'
+
+    ReviewRequest:
+      type: object
+      required: [word]
+      properties:
+        word:
+          type: string
+          example: "example"
+
+    ReviewHistoryItem:
+      allOf:
+        - type: object
+          properties:
+            word:
+              type: string
+              example: "example"
+        - $ref: '#/components/schemas/WordStats'
+
+    ReviewHistoryResponse:
+      type: array
+      description: 復習済み単語の履歴配列
+      items:
+        $ref: '#/components/schemas/ReviewHistoryItem'
+
+    WordDetailResponse:
+      allOf:
+        - type: object
+          properties:
+            word:
+              type: string
+              example: "example"
+        - $ref: '#/components/schemas/WordStats'
+
+security:
+  - bearerAuth: []
