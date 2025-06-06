@@ -62,7 +62,11 @@ func fetchAndCachePublicKeys(kid string) (*rsa.PublicKey, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch public keys: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("Warning: failed to close response body: %v", err)
+		}
+	}()
 
 	// Cache-Controlヘッダーからmax-age値を取得
 	cacheControl := resp.Header.Get("Cache-Control")
@@ -222,9 +226,10 @@ func AuthMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		// APP_ENV環境変数をチェック
 		appEnv := os.Getenv("APP_ENV")
-		if appEnv == "" {
+		switch appEnv {
+		case "":
 			log.Printf("Warning: APP_ENV environment variable is not set, authentication will be enforced")
-		} else if appEnv == "local" {
+		case "local":
 			log.Printf("Local environment detected: bypassing authentication for request from %s", c.RealIP())
 			// ローカル環境では認証をバイパスし、ダミーのユーザーIDを設定
 			dummyUserID := "local-user"
