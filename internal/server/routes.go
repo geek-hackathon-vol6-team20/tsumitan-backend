@@ -27,20 +27,17 @@ func (s *Server) RegisterRoutes() http.Handler {
 	e.Use(auth.AuthMiddleware)
 
 	e.GET("/", s.HelloWorldHandler)
-
 	e.GET("/health", s.healthHandler)
 
-	return e
-}
-
-func (s *Server) HelloWorldHandler(c echo.Context) error {
-	resp := map[string]string{
-		"message": "Hello World",
+	// /api以下をAPIのルートとして登録
+	api := e.Group("/api")
+	{
+		api.POST("/search", s.SearchHandler)
+		// api.GET("/review/pending", s.GetPendingReviewsHandler)
+		// api.PATCH("/review", s.ReviewHandler)
+		// api.GET("/review/history", s.ReviewHistoryHandler)
+		// api.GET("/word/:word", s.GetWordHandler)
 	}
 
-	return c.JSON(http.StatusOK, resp)
-}
-
-func (s *Server) healthHandler(c echo.Context) error {
-	return c.JSON(http.StatusOK, s.db.Health())
+	return e
 }

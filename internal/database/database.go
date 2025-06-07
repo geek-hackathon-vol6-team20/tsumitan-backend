@@ -19,6 +19,8 @@ type Service interface {
 	Health() map[string]string
 	Close() error
 	Migrate() error
+	// Word operations
+	CreateOrUpdateWordSearch(userID, word string) error
 }
 
 type service struct {
@@ -127,4 +129,31 @@ func (s *service) Migrate() error {
 	}
 	log.Println("Database migration completed.")
 	return nil
+}
+
+// CreateOrUpdateWordSearch creates a new word record or increments search_count if it already exists
+func (s *service) CreateOrUpdateWordSearch(userID, word string) error {
+	var existingWord models.Word
+
+	// Try to find existing record
+	result := s.db.Where("user_id = ? AND word = ?", userID, word).First(&existingWord)
+
+	if result.Error != nil {
+		// Check if it's a "record not found" error using GORM's errors
+		if result.Error == gorm.ErrRecordNotFound {
+			// Create new record
+			newWord := models.Word{
+				UserID:      userID,
+				Word:        word,
+				SearchCount: 1,
+				ReviewCount: 0,
+			}
+			return s.db.Create(&newWord).Error
+		}
+		// Other error occurred
+		return result.Error
+	}
+
+	// Update existing record
+	return s.db.Model(&existingWord).Update("search_count", existingWord.SearchCount+1).Error
 }
