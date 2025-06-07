@@ -27,8 +27,17 @@ func (s *Server) RegisterRoutes() http.Handler {
 	e.Use(auth.AuthMiddleware)
 
 	e.GET("/", s.HelloWorldHandler)
-
 	e.GET("/health", s.healthHandler)
+
+	// /api以下をAPIのルートとして登録
+	api := e.Group("/api")
+	{
+		api.POST("/search", s.SearchHandler)
+		// api.GET("/review/pending", s.GetPendingReviewsHandler)
+		// api.PATCH("/review", s.ReviewHandler)
+		// api.GET("/review/history", s.ReviewHistoryHandler)
+		// api.GET("/word/:word", s.GetWordHandler)
+	}
 
 	return e
 }
