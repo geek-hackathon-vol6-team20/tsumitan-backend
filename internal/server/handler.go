@@ -128,6 +128,7 @@ func (s *Server) GetPendingReviewsHandler(c echo.Context) error {
 
 	// Map database results to PendingResponse
 	response := []PendingResponse{}
+
 	for _, review := range pendingReviews {
 		response = append(response, PendingResponse{
 			Word:        review.Word,
@@ -181,4 +182,47 @@ func (s *Server) ReviewHandler(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, map[string]string{
 		"message": "復習が記録されました。"})
+}
+
+type ReviewHistoryResponse struct {
+	Word         string `json:"word"`
+	SearchCount  int    `json:"search_count"`
+	ReviewCount  int    `json:"review_count"`
+	LastReviewed string `json:"last_reviewed"`
+}
+
+func (s *Server) ReviewHistoryHandler(c echo.Context) error {
+	// Get user ID from context (set by auth middleware)
+	userID, ok := c.Get(string(auth.UserIDContextKey)).(string)
+	if !ok {
+		log.Println("User ID not found in context")
+		return c.JSON(http.StatusInternalServerError, ErrorResponse{
+			Message: "ユーザーIDが見つかりません",
+		})
+	}
+
+	// Fetch pending reviews from database
+	// データベースから未レビューの単語を取得
+	reviewedRecords, err := s.db.ReviewedWordSearch(userID)
+	if err != nil {
+		log.Printf("Failed to fetch pending reviews: %v", err)
+		return c.JSON(http.StatusInternalServerError, ErrorResponse{
+			Message: "サーバーエラー",
+		})
+	}
+
+	// Map database results to PendingResponse
+	response := []ReviewHistoryResponse{}
+
+	for _, review := range reviewedRecords {
+		response = append(response, ReviewHistoryResponse{
+			Word:         review.Word,
+			SearchCount:  review.SearchCount,
+			ReviewCount:  review.ReviewCount,
+			LastReviewed: review.LastReviewed.String(),
+		})
+	}
+
+	// Return filtered response
+	return c.JSON(http.StatusOK, response)
 }
