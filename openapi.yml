@@ -33,7 +33,10 @@ paths:
       responses:
         '200':
           description: 検索の記録に成功
-          content: {}
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
         '400':
           description: リクエスト不備
           content:
@@ -231,6 +234,18 @@ components:
           type: string
           description: 検索する英単語
           example: "example"
+
+    SearchResponse:
+      type: object
+      properties:
+        word:
+          type: string
+          description: 検索した単語
+          example: "example"
+        meanings:
+          type: string
+          description: 単語の意味
+          example: "(…の)『例』,実例(instance);(…の)『見本』,標本《+『of』+『名』》 / (…にとっての)『手本』,模範(model)《+『to』+『名』》 / (…への)見せしめ,戒め《+『for』(『to』)+『名』》"
 
     WordStats:
       type: object

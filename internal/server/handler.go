@@ -1,6 +1,7 @@
 package server
 
 import (
+	"io"
 	"log"
 	"net/http"
 	"tsumitan/internal/auth"
@@ -10,7 +11,7 @@ import (
 
 // SearchRequest represents the request body for search endpoint
 type SearchRequest struct {
-	Word string `json:"word" validate:"required"`
+	Word string `json:"word"`
 }
 
 // ErrorResponse represents error response structure
@@ -66,6 +67,32 @@ func (s *Server) SearchHandler(c echo.Context) error {
 
 	log.Printf("Search recorded for user %s, word: %s", userID, req.Word)
 
+	// Search word meaning from external API
+	client := &http.Client{}
+	url := "https://api.excelapi.org/dictionary/enja?word=" + req.Word
+
+	resp, err := client.Get(url)
+	if err != nil {
+		log.Printf("Failed to fetch word meaning: %v", err)
+		return c.JSON(http.StatusInternalServerError, ErrorResponse{
+			Message: "辞書APIエラー",
+		})
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("Failed to read API response: %v", err)
+		return c.JSON(http.StatusInternalServerError, ErrorResponse{
+			Message: "辞書APIレスポンス読み込みエラー",
+		})
+	}
+
+	meaning := string(body)
+
 	// Return success response
-	return c.JSON(http.StatusOK, map[string]interface{}{})
+	return c.JSON(http.StatusOK, map[string]any{
+		"word":    req.Word,
+		"meaning": meaning,
+	})
 }
