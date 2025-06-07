@@ -126,5 +126,15 @@ func (s *Server) GetPendingReviewsHandler(c echo.Context) error {
 		})
 	}
 
-	return c.JSON(http.StatusOK, pendingReviews)
+	// Map database results to PendingResponse
+	var response []PendingResponse
+	for _, review := range pendingReviews {
+		response = append(response, PendingResponse{
+			Word:        review.Word,
+			SearchCount: review.SearchCount,
+		})
+	}
+
+	// Return filtered response
+	return c.JSON(http.StatusOK, response)
 }
