@@ -39,7 +39,7 @@ tsumitan-backend/
 ## 🔧 設定ファイル
 
 ### `docker-compose.yml`
-- PostgreSQL (psql_bp)
+- PostgreSQL (psql)
 - Swagger UI (swagger-ui)
 - pgweb 管理UI
 
