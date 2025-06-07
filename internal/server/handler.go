@@ -226,3 +226,53 @@ func (s *Server) ReviewHistoryHandler(c echo.Context) error {
 	// Return filtered response
 	return c.JSON(http.StatusOK, response)
 }
+
+type WordDetailResponse struct {
+	Word         string `json:"word"`
+	SearchCount  int    `json:"search_count"`
+	ReviewCount  int    `json:"review_count"`
+	LastReviewed string `json:"last_reviewed"`
+}
+
+func (s *Server) GetWordHandler(c echo.Context) error {
+	// Get user ID from context (set by auth middleware)
+	userID, ok := c.Get(string(auth.UserIDContextKey)).(string)
+	if !ok {
+		log.Println("User ID not found in context")
+		return c.JSON(http.StatusInternalServerError, ErrorResponse{
+			Message: "ユーザーIDが見つかりません",
+		})
+	}
+
+	word := c.Param("word")
+	if word == "" {
+		return c.JSON(http.StatusBadRequest, ErrorResponse{
+			Message: "単語が指定されていません",
+		})
+	}
+
+	// Fetch word from database
+	wordRecord, err := s.db.GetWordInfo(userID, word)
+	if wordRecord == nil {
+		return c.JSON(http.StatusNotFound, ErrorResponse{
+			Message: "単語が見つかりません",
+		})
+	}
+	if err != nil {
+		log.Printf("Failed to fetch word: %v", err)
+		return c.JSON(http.StatusInternalServerError, ErrorResponse{
+			Message: "サーバーエラー",
+		})
+	}
+
+	// Map database results to PendingResponse
+	response := WordDetailResponse{
+		Word:         wordRecord.Word,
+		SearchCount:  wordRecord.SearchCount,
+		ReviewCount:  wordRecord.ReviewCount,
+		LastReviewed: wordRecord.LastReviewed.String(),
+	}
+
+	// Return filtered response
+	return c.JSON(http.StatusOK, response)
+}
