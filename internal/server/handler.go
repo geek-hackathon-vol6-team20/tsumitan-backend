@@ -78,7 +78,11 @@ func (s *Server) SearchHandler(c echo.Context) error {
 			Message: "辞書APIエラー",
 		})
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("Warning: failed to close response body: %v", err)
+		}
+	}()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
