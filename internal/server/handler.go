@@ -100,3 +100,31 @@ func (s *Server) SearchHandler(c echo.Context) error {
 		"meaning": meaning,
 	})
 }
+
+type PendingResponse struct {
+	Word        string `json:"word"`
+	SearchCount int    `json:"search_count"`
+}
+
+func (s *Server) GetPendingReviewsHandler(c echo.Context) error {
+	// Get user ID from context (set by auth middleware)
+	userID, ok := c.Get(string(auth.UserIDContextKey)).(string)
+	if !ok {
+		log.Println("User ID not found in context")
+		return c.JSON(http.StatusInternalServerError, ErrorResponse{
+			Message: "ユーザーIDが見つかりません",
+		})
+	}
+
+	// Fetch pending reviews from database
+	// データベースから未レビューの単語を取得
+	pendingReviews, err := s.db.PendingWordSearch(userID)
+	if err != nil {
+		log.Printf("Failed to fetch pending reviews: %v", err)
+		return c.JSON(http.StatusInternalServerError, ErrorResponse{
+			Message: "サーバーエラー",
+		})
+	}
+
+	return c.JSON(http.StatusOK, pendingReviews)
+}
