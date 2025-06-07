@@ -21,6 +21,7 @@ type Service interface {
 	Migrate() error
 	// Word operations
 	CreateOrUpdateWordSearch(userID, word string) error
+	PendingWordSearch(userID string) ([]models.Word, error)
 }
 
 type service struct {
@@ -156,4 +157,17 @@ func (s *service) CreateOrUpdateWordSearch(userID, word string) error {
 
 	// Update existing record
 	return s.db.Model(&existingWord).Update("search_count", existingWord.SearchCount+1).Error
+}
+
+func (s *service) PendingWordSearch(userID string) ([]models.Word, error) {
+	var words []models.Word
+
+	// Query to fetch records where ReviewCount = 0
+	err := s.db.Where("user_id = ? AND review_count = ?", userID, 0).Find(&words).Error
+	if err != nil {
+		log.Printf("Error fetching pending words for user %s: %v", userID, err)
+		return nil, err
+	}
+
+	return words, nil
 }
