@@ -1,9 +1,9 @@
 # 積み単 ( Tsumitan )
 
-<!-- デプロイしたらそれについても書く。デプロイ先のURLやサービスなど-->
-
 言語学習を支援するGoベースのWebAPIアプリケーションのバックエンドです。
 フロントエンドは[こちら](https://github.com/geek-hackathon-vol6-team20/tsumitan-frontend)
+
+デプロイ先は[こちら](https://tsumitan.me/)です。
 
 ## 📚 プロジェクト構成
 
@@ -34,6 +34,11 @@
 ### Code Quality
 - **golangci-lint** - 静的解析ツール
 - **gofmt** - コードフォーマッター
+- **GitHub Actions** - CI/CDパイプライン
+
+### Deployment
+- **Cloud Run** - Google Cloud Platform上でのサーバーレスデプロイ
+- **Supabase** - PostgreSQLのホスティングサービス
 
 ## 🏗️ アーキテクチャ
 
@@ -44,14 +49,14 @@
 │   ├── database/     # データベース接続・操作
 │   ├── models/       # データモデル (Word等)
 │   └── server/       # HTTPサーバー・ルーティング
-└── docs/            # プロジェクトドキュメント
+└── docs/             # プロジェクトドキュメント
 ```
 
 ## 🚀 Getting Started
 
 ### 前提条件
 
-- Go 1.21以上
+- Go
 - Docker & Docker Compose
 - Make
 

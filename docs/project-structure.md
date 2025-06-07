@@ -12,6 +12,7 @@ tsumitan-backend/
 │   └── server/                 # Webサーバー
 │       ├── server.go           # サーバー設定
 │       └── routes.go           # API ルーティング
+│       └── handler.go          # ハンドラー
 ├── docs/                       # ドキュメント
 ├── docker-compose.yml          # 開発環境
 ├── openapi.yml                 # API仕様書
