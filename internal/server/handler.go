@@ -138,3 +138,47 @@ func (s *Server) GetPendingReviewsHandler(c echo.Context) error {
 	// Return filtered response
 	return c.JSON(http.StatusOK, response)
 }
+
+type ReviewRequest struct {
+	Word string `json:"word"`
+}
+
+func (s *Server) ReviewHandler(c echo.Context) error {
+	// Get user ID from context (set by auth middleware)
+	userID, ok := c.Get(string(auth.UserIDContextKey)).(string)
+	if !ok {
+		log.Println("User ID not found in context")
+		return c.JSON(http.StatusInternalServerError, ErrorResponse{
+			Message: "ユーザーIDが見つかりません",
+		})
+	}
+
+	// Parse request body
+	var req ReviewRequest
+	if err := c.Bind(&req); err != nil {
+		log.Printf("Failed to bind request: %v", err)
+		return c.JSON(http.StatusBadRequest, ErrorResponse{
+			Message: "リクエスト不備",
+		})
+	}
+
+	// Validate required fields
+	if req.Word == "" {
+		return c.JSON(http.StatusBadRequest, ErrorResponse{
+			Message: "必須フィールドが不足しています",
+		})
+	}
+
+	// Update review count in database
+	if err := s.db.UpdateWordReview(userID, req.Word); err != nil {
+		log.Printf("Failed to update review: %v", err)
+		return c.JSON(http.StatusInternalServerError, ErrorResponse{
+			Message: "サーバーエラー",
+		})
+	}
+
+	log.Printf("Review updated for user %s, word: %s", userID, req.Word)
+
+	return c.JSON(http.StatusOK, map[string]string{
+		"message": "復習が記録されました。"})
+}

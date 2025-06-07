@@ -22,6 +22,7 @@ type Service interface {
 	// Word operations
 	CreateOrUpdateWordSearch(userID, word string) error
 	PendingWordSearch(userID string) ([]models.Word, error)
+	UpdateWordReview(userID, word string) error
 }
 
 type service struct {
@@ -170,4 +171,23 @@ func (s *service) PendingWordSearch(userID string) ([]models.Word, error) {
 	}
 
 	return words, nil
+}
+
+func (s *service) UpdateWordReview(userID, word string) error {
+	var reviewedWord models.Word
+
+	// Try to find existing record
+	result := s.db.Where("user_id = ? AND word = ?", userID, word).First(&reviewedWord)
+
+	if result.Error != nil {
+		// Check if it's a "record not found" error using GORM's errors
+		if result.Error == gorm.ErrRecordNotFound {
+			return fmt.Errorf("word '%s' not found for user '%s'", word, userID)
+		}
+		// Other error occurred
+		return result.Error
+	}
+
+	// Update existing record
+	return s.db.Model(&reviewedWord).Update("review_count", reviewedWord.ReviewCount+1).Error
 }
