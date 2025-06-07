@@ -23,6 +23,7 @@ type Service interface {
 	CreateOrUpdateWordSearch(userID, word string) error
 	PendingWordSearch(userID string) ([]models.Word, error)
 	UpdateWordReview(userID, word string) error
+	ReviewedWordSearch(userID string) ([]models.Word, error)
 }
 
 type service struct {
@@ -190,4 +191,18 @@ func (s *service) UpdateWordReview(userID, word string) error {
 
 	// Update existing record
 	return s.db.Model(&reviewedWord).Update("review_count", reviewedWord.ReviewCount+1).Error
+}
+
+// GetWordHandler retrieves a word record by user ID and word
+func (s *service) ReviewedWordSearch(userID string) ([]models.Word, error) {
+	var words []models.Word
+
+	// Query to fetch records where ReviewCount = 0
+	err := s.db.Where("user_id = ? AND review_count > 0", userID).Find(&words).Error
+	if err != nil {
+		log.Printf("Error fetching reviewed words for user %s: %v", userID, err)
+		return nil, err
+	}
+
+	return words, nil
 }
