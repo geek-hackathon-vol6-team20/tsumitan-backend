@@ -67,9 +67,34 @@ func (s *Server) SearchHandler(c echo.Context) error {
 
 	log.Printf("Search recorded for user %s, word: %s", userID, req.Word)
 
+	// Return success response (no meaning returned)
+	return c.JSON(http.StatusOK, map[string]string{
+		"message": "検索が記録されました",
+	})
+}
+
+// GetWordMeaningHandler handles GET /api/search?word={word} - returns word meaning without incrementing search count
+func (s *Server) GetWordMeaningHandler(c echo.Context) error {
+	// Get user ID from context (set by auth middleware)
+	userID, ok := c.Get(string(auth.UserIDContextKey)).(string)
+	if !ok {
+		log.Println("User ID not found in context")
+		return c.JSON(http.StatusInternalServerError, ErrorResponse{
+			Message: "ユーザーIDが見つかりません",
+		})
+	}
+
+	// Get word from query parameter
+	word := c.QueryParam("word")
+	if word == "" {
+		return c.JSON(http.StatusBadRequest, ErrorResponse{
+			Message: "単語パラメータが必要です",
+		})
+	}
+
 	// Search word meaning from external API
 	client := &http.Client{}
-	url := "https://api.excelapi.org/dictionary/enja?word=" + req.Word
+	url := "https://api.excelapi.org/dictionary/enja?word=" + word
 
 	resp, err := client.Get(url)
 	if err != nil {
@@ -94,10 +119,12 @@ func (s *Server) SearchHandler(c echo.Context) error {
 
 	meaning := string(body)
 
-	// Return success response
+	log.Printf("Word meaning fetched for user %s, word: %s (no search count increment)", userID, word)
+
+	// Return word meaning without incrementing search count
 	return c.JSON(http.StatusOK, map[string]any{
-		"word":    req.Word,
-		"meaning": meaning,
+		"word":     word,
+		"meanings": meaning,
 	})
 }
 

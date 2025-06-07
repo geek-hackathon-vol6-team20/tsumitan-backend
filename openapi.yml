@@ -8,20 +8,62 @@ info:
     各ユーザーと単語の組み合わせで一意な記録が作成され、検索回数・復習回数が追跡されます。
 
 servers:
-  - url: https://api.example.com
-    description: 本番サーバー
   - url: http://localhost:8080
     description: 開発サーバー
+  # - url: https://api.example.com
+  #   description: 本番サーバー
 
 paths:
   /api/search:
+    get:
+      summary: 単語の意味を取得する（検索回数インクリメントなし）
+      description: |
+        Bearerトークンから `user_id` を取得し、ユーザーを識別します。
+        単語の意味のみを取得し、検索回数はインクリメントしません。
+        復習時や意味の確認時に使用します。
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: word
+          in: query
+          required: true
+          description: 意味を取得したい英単語
+          schema:
+            type: string
+            example: "example"
+      responses:
+        '200':
+          description: 単語の意味の取得に成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchMeaningResponse'
+        '400':
+          description: リクエスト不備
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 認証エラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: サーバーエラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     post:
-      summary: 単語の検索を記録する（新規または更新）
+      summary: 単語の検索を記録する（検索回数インクリメント）
       description: |
         Bearerトークンから `user_id` を取得し、ユーザーを識別します。
         単語を検索したときに呼び出されます。同じ`user_id`と`word`の組み合わせが
         既に存在する場合、`search_count`をインクリメントし、
         存在しない場合は新規作成され、`search_count = 1`、`review_count = 0`になります。
+        このエンドポイントは検索回数の記録のみを行い、意味は返しません。
       security:
         - bearerAuth: []
       requestBody:
@@ -36,7 +78,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SearchResponse'
+                $ref: '#/components/schemas/SearchRecordResponse'
         '400':
           description: リクエスト不備
           content:
@@ -234,6 +276,26 @@ components:
           type: string
           description: 検索する英単語
           example: "example"
+
+    SearchMeaningResponse:
+      type: object
+      properties:
+        word:
+          type: string
+          description: 検索した単語
+          example: "example"
+        meanings:
+          type: string
+          description: 単語の意味
+          example: "(…の)『例』,実例(instance);(…の)『見本』,標本《+『of』+『名』》 / (…にとっての)『手本』,模範(model)《+『to』+『名』》 / (…への)見せしめ,戒め《+『for』(『to』)+『名』》"
+
+    SearchRecordResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          description: 検索記録完了メッセージ
+          example: "検索が記録されました"
 
     SearchResponse:
       type: object

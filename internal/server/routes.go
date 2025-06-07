@@ -32,6 +32,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	// /api以下をAPIのルートとして登録
 	api := e.Group("/api")
 	{
+		api.GET("/search", s.GetWordMeaningHandler)
 		api.POST("/search", s.SearchHandler)
 		api.GET("/review/pending", s.GetPendingReviewsHandler)
 		api.PATCH("/review", s.ReviewHandler)
