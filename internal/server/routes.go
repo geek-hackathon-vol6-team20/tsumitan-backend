@@ -34,7 +34,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	{
 		api.POST("/search", s.SearchHandler)
 		api.GET("/review/pending", s.GetPendingReviewsHandler)
-		// api.PATCH("/review", s.ReviewHandler)
+		api.PATCH("/review", s.ReviewHandler)
 		// api.GET("/review/history", s.ReviewHistoryHandler)
 		// api.GET("/word/:word", s.GetWordHandler)
 	}
