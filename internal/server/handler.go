@@ -127,7 +127,7 @@ func (s *Server) GetPendingReviewsHandler(c echo.Context) error {
 	}
 
 	// Map database results to PendingResponse
-	var response []PendingResponse
+	response := []PendingResponse{}
 	for _, review := range pendingReviews {
 		response = append(response, PendingResponse{
 			Word:        review.Word,
