@@ -119,6 +119,14 @@ func (s *Server) GetWordMeaningHandler(c echo.Context) error {
 
 	meaning := string(body)
 
+	//単語の意味がない時に404 Not Foundを返す
+	if meaning == "" {
+		log.Printf("No meaning found for word: %s", word)
+		return c.JSON(http.StatusNotFound, ErrorResponse{
+			Message: "単語の意味が見つかりません",
+		})
+	}
+
 	log.Printf("Word meaning fetched for user %s, word: %s (no search count increment)", userID, word)
 
 	// Return word meaning without incrementing search count
