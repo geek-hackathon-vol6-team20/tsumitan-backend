@@ -1,23 +1,16 @@
 package server
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"net/url"
+	"sync"
 	"tsumitan/internal/auth"
 
 	"github.com/labstack/echo/v4"
 )
-
-// SearchRequest represents the request body for search endpoint
-type SearchRequest struct {
-	Word string `json:"word"`
-}
-
-// ErrorResponse represents error response structure
-type ErrorResponse struct {
-	Message string `json:"message"`
-}
 
 func (s *Server) HelloWorldHandler(c echo.Context) error {
 	resp := map[string]string{
@@ -31,6 +24,72 @@ func (s *Server) healthHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, s.db.Health())
 }
 
+// キャッシュ生成用
+var (
+	wordCache = make(map[string]string)
+	cacheMu   sync.RWMutex
+)
+
+type DictionaryResponse struct {
+	Word    string `json:"word"`
+	Meaning string `json:"meaning"`
+}
+
+// 単語の意味を取得する（キャッシュを用いる）
+func FetchWordMeaning(word string) (string, error) {
+	if word == "" {
+		return "", fmt.Errorf("単語が指定されていません")
+	}
+
+	cacheMu.RLock()
+	if meaning, found := wordCache[word]; found {
+		cacheMu.RUnlock()
+		return meaning, nil
+	}
+	cacheMu.RUnlock()
+
+	// 辞書APIにリクエストを送信
+	url := "https://api.excelapi.org/dictionary/enja?word=" + url.QueryEscape(word)
+	resp, err := http.Get(url)
+	if err != nil {
+		return "", fmt.Errorf("辞書APIリクエスト失敗: %w", err)
+	}
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("response body close error: %v", err)
+		}
+	}()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("辞書APIステータスエラー: %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("辞書APIレスポンス読み取りエラー: %w", err)
+	}
+
+	meaning := string(body)
+
+	// キャッシュに保存
+	cacheMu.Lock()
+	wordCache[word] = meaning
+	cacheMu.Unlock()
+
+	return meaning, nil
+}
+
+// SearchRequest represents the request body for search endpoint
+type SearchRequest struct {
+	Word string `json:"word"`
+}
+
+// ErrorResponse represents error response structure
+type ErrorResponse struct {
+	Message string `json:"message"`
+}
+
+// SearchHandler handles POST /api/search - records a word search and returns no meaning
 func (s *Server) SearchHandler(c echo.Context) error {
 	// Get user ID from context (set by auth middleware)
 	userID, ok := c.Get(string(auth.UserIDContextKey)).(string)
@@ -54,6 +113,15 @@ func (s *Server) SearchHandler(c echo.Context) error {
 	if req.Word == "" {
 		return c.JSON(http.StatusBadRequest, ErrorResponse{
 			Message: "必須フィールドが不足しています",
+		})
+	}
+
+	// 単語の意味が存在するか確認
+	meaning, err := FetchWordMeaning(req.Word)
+	if err != nil || meaning == "" {
+		log.Printf("意味取得失敗: %v", err)
+		return c.JSON(http.StatusNotFound, ErrorResponse{
+			Message: "意味の取得に失敗しました",
 		})
 	}
 
@@ -92,47 +160,18 @@ func (s *Server) GetWordMeaningHandler(c echo.Context) error {
 		})
 	}
 
-	// Search word meaning from external API
-	client := &http.Client{}
-	url := "https://api.excelapi.org/dictionary/enja?word=" + word
-
-	resp, err := client.Get(url)
-	if err != nil {
-		log.Printf("Failed to fetch word meaning: %v", err)
-		return c.JSON(http.StatusInternalServerError, ErrorResponse{
-			Message: "辞書APIエラー",
-		})
-	}
-	defer func() {
-		if err := resp.Body.Close(); err != nil {
-			log.Printf("Warning: failed to close response body: %v", err)
-		}
-	}()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Printf("Failed to read API response: %v", err)
-		return c.JSON(http.StatusInternalServerError, ErrorResponse{
-			Message: "辞書APIレスポンス読み込みエラー",
-		})
-	}
-
-	meaning := string(body)
-
-	//単語の意味がない時に404 Not Foundを返す
-	if meaning == "" {
-		log.Printf("No meaning found for word: %s", word)
-		return c.JSON(http.StatusNotFound, ErrorResponse{
-			Message: "単語の意味が見つかりません",
-		})
+	meaning, err := FetchWordMeaning(word)
+	if err != nil || meaning == "" {
+		log.Printf("意味取得失敗: %v", err)
+		return c.JSON(http.StatusNotFound, ErrorResponse{Message: "意味の取得に失敗しました"})
 	}
 
 	log.Printf("Word meaning fetched for user %s, word: %s (no search count increment)", userID, word)
 
 	// Return word meaning without incrementing search count
-	return c.JSON(http.StatusOK, map[string]any{
-		"word":     word,
-		"meanings": meaning,
+	return c.JSON(http.StatusOK, DictionaryResponse{
+		Word:    word,
+		Meaning: meaning, // Assuming we return the first meaning
 	})
 }
 
@@ -141,6 +180,7 @@ type PendingResponse struct {
 	SearchCount int    `json:"search_count"`
 }
 
+// GetPendingReviewsHandler handles GET /api/review/pending - returns words pending review for the user
 func (s *Server) GetPendingReviewsHandler(c echo.Context) error {
 	// Get user ID from context (set by auth middleware)
 	userID, ok := c.Get(string(auth.UserIDContextKey)).(string)
@@ -179,6 +219,7 @@ type ReviewRequest struct {
 	Word string `json:"word"`
 }
 
+// ReviewHandler handles PATCH /api/review - records a review for a word
 func (s *Server) ReviewHandler(c echo.Context) error {
 	// Get user ID from context (set by auth middleware)
 	userID, ok := c.Get(string(auth.UserIDContextKey)).(string)
@@ -226,6 +267,7 @@ type ReviewHistoryResponse struct {
 	LastReviewed string `json:"last_reviewed"`
 }
 
+// ReviewHistoryHandler handles GET /api/review/history - returns review history for the user
 func (s *Server) ReviewHistoryHandler(c echo.Context) error {
 	// Get user ID from context (set by auth middleware)
 	userID, ok := c.Get(string(auth.UserIDContextKey)).(string)
@@ -269,6 +311,7 @@ type WordDetailResponse struct {
 	LastReviewed string `json:"last_reviewed"`
 }
 
+// GetWordHandler handles GET /api/word/:word - returns detailed word info for the user
 func (s *Server) GetWordHandler(c echo.Context) error {
 	// Get user ID from context (set by auth middleware)
 	userID, ok := c.Get(string(auth.UserIDContextKey)).(string)
