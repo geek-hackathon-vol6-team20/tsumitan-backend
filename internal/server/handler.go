@@ -54,7 +54,11 @@ func FetchWordMeaning(word string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("辞書APIリクエスト失敗: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("response body close error: %v", err)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("辞書APIステータスエラー: %d", resp.StatusCode)
