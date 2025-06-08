@@ -31,8 +31,8 @@ var (
 )
 
 type DictionaryResponse struct {
-	Word    string `json:"word"`
-	Meaning string `json:"meaning"`
+	Word     string `json:"word"`
+	Meanings string `json:"meanings"`
 }
 
 // 単語の意味を取得する（キャッシュを用いる）
@@ -42,9 +42,9 @@ func FetchWordMeaning(word string) (string, error) {
 	}
 
 	cacheMu.RLock()
-	if meaning, found := wordCache[word]; found {
+	if meanings, found := wordCache[word]; found {
 		cacheMu.RUnlock()
-		return meaning, nil
+		return meanings, nil
 	}
 	cacheMu.RUnlock()
 
@@ -69,14 +69,14 @@ func FetchWordMeaning(word string) (string, error) {
 		return "", fmt.Errorf("辞書APIレスポンス読み取りエラー: %w", err)
 	}
 
-	meaning := string(body)
+	meanings := string(body)
 
 	// キャッシュに保存
 	cacheMu.Lock()
-	wordCache[word] = meaning
+	wordCache[word] = meanings
 	cacheMu.Unlock()
 
-	return meaning, nil
+	return meanings, nil
 }
 
 // SearchRequest represents the request body for search endpoint
@@ -117,8 +117,8 @@ func (s *Server) SearchHandler(c echo.Context) error {
 	}
 
 	// 単語の意味が存在するか確認
-	meaning, err := FetchWordMeaning(req.Word)
-	if err != nil || meaning == "" {
+	meanings, err := FetchWordMeaning(req.Word)
+	if err != nil || meanings == "" {
 		log.Printf("意味取得失敗: %v", err)
 		return c.JSON(http.StatusNotFound, ErrorResponse{
 			Message: "意味の取得に失敗しました",
@@ -160,8 +160,8 @@ func (s *Server) GetWordMeaningHandler(c echo.Context) error {
 		})
 	}
 
-	meaning, err := FetchWordMeaning(word)
-	if err != nil || meaning == "" {
+	meanings, err := FetchWordMeaning(word)
+	if err != nil || meanings == "" {
 		log.Printf("意味取得失敗: %v", err)
 		return c.JSON(http.StatusNotFound, ErrorResponse{Message: "意味の取得に失敗しました"})
 	}
@@ -170,8 +170,8 @@ func (s *Server) GetWordMeaningHandler(c echo.Context) error {
 
 	// Return word meaning without incrementing search count
 	return c.JSON(http.StatusOK, DictionaryResponse{
-		Word:    word,
-		Meaning: meaning, // Assuming we return the first meaning
+		Word:     word,
+		Meanings: meanings, // Assuming we return the first meaning
 	})
 }
 
